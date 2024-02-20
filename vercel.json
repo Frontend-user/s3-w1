@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "s3-w2",
+  "name": "s3-w1",
   "builds": [
     { "src": "src/index.ts", "use": "@vercel/node" }
   ],
