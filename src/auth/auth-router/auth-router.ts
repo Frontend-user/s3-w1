@@ -32,10 +32,17 @@ import {usersQueryRepository} from "../../users/query-repository/users-query-rep
 import {ObjectId} from "mongodb";
 import {authRepositories} from "../auth-repository/auth-repository";
 import {
-    authorizationTokenMiddleware, isUnValidTokenMiddleware,
+    authorizationTokenMiddleware,
+    authRestrictionValidator, emailConfirmRestrictionValidator, emailResendingRestrictionValidator,
+    isUnValidTokenMiddleware,
+    loginRestrictionValidator,
     refreshTokenValidator,
     tokenValidationMiddleware,
 } from "../validation/tokenValidator";
+import {securityService} from "../../security/domain/security-service";
+import {v4 as uuidv4} from "uuid";
+import {querySecurityRepositories} from "../../security/query-repository/query-security-repository";
+import {securityRepositories} from "../../security/repositories/security-repository";
 
 export const authRouter = Router({})
 
@@ -71,7 +78,7 @@ authRouter.get('/me',
     })
 
 authRouter.post('/logout',
-   refreshTokenValidator,
+    refreshTokenValidator,
     isUnValidTokenMiddleware,
     tokenValidationMiddleware,
     async (req: Request, res: Response) => {
@@ -81,6 +88,16 @@ authRouter.post('/logout',
             res.sendStatus(HTTP_STATUSES.NOT_AUTH_401)
             return
         }
+        const oldTokenData = await jwtService.getRefreshToken(getRefreshToken)
+        const isError = await querySecurityRepositories.getDeviceByDateAndDeviceId(oldTokenData)
+
+        if (!isError) {
+            res.sendStatus(401)
+            return
+        }
+        const tokenData = await jwtService.getRefreshToken(req.cookies.refreshToken)
+        const deviceId = tokenData ? tokenData.deviceId : '0'
+        await securityRepositories.deleteDeviceById(deviceId)
         await authRepositories.addUnValidRefreshToken(getRefreshToken)
         res.sendStatus(204)
     }
@@ -90,14 +107,26 @@ authRouter.post('/refresh-token',
     isUnValidTokenMiddleware,
     tokenValidationMiddleware,
     async (req: Request, res: Response) => {
-
         const getRefreshToken = req.cookies.refreshToken
         const userId = await jwtService.checkRefreshToken(getRefreshToken)
+        console.log(userId, 'USERID ')
         if (!userId) {
             res.sendStatus(HTTP_STATUSES.NOT_AUTH_401)
             return
         }
-        const refreshToken = await jwtService.createRefreshToken(userId)
+
+        const oldTokenData = await jwtService.getRefreshToken(getRefreshToken)
+        const isError = await querySecurityRepositories.getDeviceByDateAndDeviceId(oldTokenData)
+
+        if (!isError) {
+            res.sendStatus(401)
+            return
+        }
+        const tokenData = await jwtService.getRefreshToken(req.cookies.refreshToken)
+        const refreshToken = await jwtService.createRefreshToken(userId, tokenData.deviceId)
+
+
+        await securityRepositories.updateDevice(refreshToken)
         const token = await jwtService.createJWT(userId)
         await authRepositories.addUnValidRefreshToken(getRefreshToken)
 
@@ -106,6 +135,7 @@ authRouter.post('/refresh-token',
     }
 )
 authRouter.post('/login',
+    loginRestrictionValidator,
     async (req: Request, res: Response) => {
         try {
             const authData: AuthType = {
@@ -117,11 +147,22 @@ authRouter.post('/login',
                 res.sendStatus(HTTP_STATUSES.NOT_AUTH_401)
                 return
             }
+            const createdDeviceId = uuidv4()
             const user = await authRepositories.getUserIdByAutData(authData)
             if (user) {
 
                 const token = await jwtService.createJWT(user._id)
-                const refreshToken = await jwtService.createRefreshToken(user._id)
+                const refreshToken = await jwtService.createRefreshToken(user._id, createdDeviceId)
+                const dataToken = await jwtService.getRefreshToken(refreshToken)
+                await securityService.createDevice({
+                        userId: String(user._id),
+                        ip: req.ip,
+                        title: req.headers['user-agent'] ?? 'string',
+                        lastActiveDate: new Date(dataToken.iat).toISOString(),
+                        deviceId: createdDeviceId
+                    }
+                )
+                console.log(req.ip, 'req.ip')
                 res.cookie('refreshToken', refreshToken, {httpOnly: true, secure: true})
                 res.send({accessToken: token})
 
@@ -134,6 +175,7 @@ authRouter.post('/login',
     })
 
 authRouter.post('/registration',
+    authRestrictionValidator,
     ...registrationValidators,
     async (req: Request, res: Response) => {
         try {
@@ -158,6 +200,7 @@ authRouter.post('/registration',
 
 
 authRouter.post('/registration-confirmation',
+    emailConfirmRestrictionValidator,
     checkCodeConfirmation,
     checkCodeExist,
     inputValidationMiddleware,
@@ -178,6 +221,7 @@ authRouter.post('/registration-confirmation',
     })
 
 authRouter.post('/registration-email-resending',
+    emailResendingRestrictionValidator,
     checkEmailConfirmation,
     userEmailRecendingExistValidation,
     inputValidationMiddleware,

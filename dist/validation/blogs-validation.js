@@ -30,7 +30,6 @@ const inputValidationMiddleware = (req, res, next) => {
     const errors = (0, express_validator_1.validationResult)(req).array({ onlyFirstError: true });
     if (errors.length) {
         let errorsForClient = [];
-        console.log(errors, 'errors');
         for (const error of errors) {
             errorsForClient.push(error.msg);
             if (error.msg.field === 'refreshToken') {

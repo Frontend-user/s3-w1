@@ -11,15 +11,28 @@ export const jwtService = {
 
         return await jwt.sign({userId: userId}, process.env.JWT_SECRET, {expiresIn: '10s'})
     },
-    async createRefreshToken(userId: ObjectId | string) {
-        return await jwt.sign({userId: userId}, process.env.REFRESH_TOKEN_SECRET, {expiresIn: '20s'})
+    async createRefreshToken(userId: ObjectId | string, newDeviceId: string) {
+        return await jwt.sign({
+            userId: userId,
+            deviceId: newDeviceId
+        }, process.env.REFRESH_TOKEN_SECRET, {expiresIn: '20s'})
+
     },
     async checkRefreshToken(token: string) {
         try {
             const result: any = await jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
-            console.log(result,'________________')
-            let isFindUser = await usersQueryRepository.getUserById(new ObjectId(result.userId) )
-            return isFindUser? result.userId: false
+            let isFindUser = await usersQueryRepository.getUserById(new ObjectId(result.userId))
+
+            return isFindUser ? result.userId : false
+        } catch (error) {
+            return
+        }
+    },
+    async getRefreshToken(token:string){
+        try {
+            const result: any = await jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+
+            return result ? result : false
         } catch (error) {
             return
         }
@@ -27,9 +40,8 @@ export const jwtService = {
     async checkToken(token: string) {
         try {
             const result: any = await jwt.verify(token, process.env.JWT_SECRET);
-            console.log(result,'________________')
-           let isFindUser = await usersQueryRepository.getUserById(new ObjectId(result.userId) )
-            return isFindUser? result.userId: false
+            let isFindUser = await usersQueryRepository.getUserById(new ObjectId(result.userId))
+            return isFindUser ? result.userId : false
         } catch (error) {
             return
         }

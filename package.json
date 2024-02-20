@@ -10,6 +10,7 @@
     "deploy": "git add . && git commit -m 'deploy' && git push origin master"
   },
   "dependencies": {
+    "@types/express-rate-limit": "^6.0.0",
     "@types/jest": "^29.5.12",
     "@types/supertest": "^6.0.2",
     "bcrypt": "^5.1.1",
@@ -34,6 +35,7 @@
     "@types/nodemailer": "^6.4.14",
     "@types/uuid": "^9.0.8",
     "dotenv": "^16.4.1",
+    "js-cookie": "^3.0.5",
     "nodemon": "^3.0.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"

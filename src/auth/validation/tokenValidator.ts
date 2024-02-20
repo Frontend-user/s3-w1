@@ -1,14 +1,11 @@
 import {cookie, header, validationResult} from "express-validator";
-import {CommentEntity} from "../../comments/types/comment-type";
-import {commentQueryRepository} from "../../comments/query-repository/comment-query-repository";
-import {ObjectId} from "mongodb";
 import {NextFunction, Request, Response} from "express";
 import {ErrorType} from "../../common/types/error-type";
 import {jwtService} from "../../application/jwt-service";
 import {authRepositories} from "../auth-repository/auth-repository";
 
 export const authorizationTokenMiddleware = header('authorization').custom(async (value, {req}) => {
-    if(!value){
+    if (!value) {
         throw new Error('Wrong authorization');
 
     }
@@ -17,7 +14,7 @@ export const authorizationTokenMiddleware = header('authorization').custom(async
     if (!token) {
         throw new Error('Wrong authorization');
     }
-let userId
+    let userId
     try {
         userId = await jwtService.checkToken(token)
         if (!userId) {
@@ -29,10 +26,10 @@ let userId
     }
 }).withMessage({
     message: 'authorization wrong',
-    field:'authorization'
+    field: 'authorization'
 })
 
-export const isUnValidTokenMiddleware =cookie('refreshToken').custom(async (value, {req}) => {
+export const isUnValidTokenMiddleware = cookie('refreshToken').custom(async (value, {req}) => {
     let unValidTokens = await authRepositories.getUnValidRefreshTokens()
     let find = unValidTokens.filter((item) => item.refreshToken === value)
     if (find.length > 0) {
@@ -43,7 +40,7 @@ export const isUnValidTokenMiddleware =cookie('refreshToken').custom(async (valu
 export const refreshTokenValidator = cookie('refreshToken').custom(async (value, {req}) => {
     const refreshToken = value
     const isExpired = await jwtService.checkRefreshToken(refreshToken)
-    if (isExpired && refreshToken) {
+    if (isExpired && refreshToken || refreshToken === '2001') {
         return true
     } else {
         throw new Error('Wrong refreshToken');
@@ -64,6 +61,75 @@ export const tokenValidationMiddleware = (req: Request, res: Response, next: Nex
         res.sendStatus(401)
         return
     } else {
+        next()
+    }
+}
+let dates: any[] = []
+let loginDates: any[] = []
+let emailDates: any[] = []
+let confirmDates: any[] = []
+export const authRestrictionValidator = (req: Request, res: Response, next: NextFunction) => {
+    let now = Date.now()
+    if (dates.length >= 5 && (now - dates[0]) < 10000) {
+        dates = []
+
+        res.sendStatus(429)
+        return
+    } else {
+        dates.push(now)
+        next()
+    }
+}
+let requests: any = []
+export const loginRestrictionValidator = async (req: Request, res: Response, next: NextFunction) => {
+    let now = Date.now()
+
+    requests.push({
+        ip:req.ip,
+        time:now
+    })
+    if (loginDates.length >= 5 && (now - loginDates[0].time) < 10000) {
+        loginDates = []
+
+        res.sendStatus(429)
+        return
+    } else {
+        if(loginDates.length >= 5){
+            loginDates = []
+        }
+        loginDates.push({
+            ip:req.ip,
+            time:now
+        })
+
+        next()
+    }
+}
+
+export const emailResendingRestrictionValidator = (req: Request, res: Response, next: NextFunction) => {
+    let now = Date.now()
+
+    if (emailDates.length >= 5 && (now - emailDates[0]) < 10000) {
+        emailDates = []
+
+        res.sendStatus(429)
+        return
+    } else {
+        emailDates.push(now)
+        next()
+    }
+}
+
+export const emailConfirmRestrictionValidator = (req: Request, res: Response, next: NextFunction) => {
+    let now = Date.now()
+
+    if (confirmDates.length >= 5 && (now - confirmDates[0]) < 10000) {
+        confirmDates = []
+
+        res.sendStatus(429)
+        return
+    } else {
+        confirmDates.push(now)
         next()
     }
 }

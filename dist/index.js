@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = require("./db");
 const app_1 = require("./app");
 const PORT = 3000;
+app_1.app.set('trust proxy', true);
 app_1.app.get('/', (req, res) => {
     res.send('w');
 });

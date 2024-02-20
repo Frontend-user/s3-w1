@@ -4,5 +4,6 @@ export const Routes = {
     posts: '/posts',
     authLogin: '/auth/login',
     blogsPostsBind: '/blogs/:blogId/posts',
-    testRoute: 'testing/all-data'
+    testRoute: 'testing/all-data',
+    devices: '/security/devices'
 }

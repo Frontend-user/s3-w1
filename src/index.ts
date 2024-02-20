@@ -3,7 +3,7 @@ import {client, runDb} from "./db";
 import {app} from "./app";
 
 const PORT = 3000
-
+app.set('trust proxy', true)
 app.get('/', (req: Request, res: Response) => {
     res.send('w')
 })

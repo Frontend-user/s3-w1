@@ -1,0 +1,1 @@
+{"version":3,"file":"security-service.js","sourceRoot":"","sources":["../../../src/security/domain/security-service.ts"],"names":[],"mappings":";;;;;;;;;;;;AACA,6EAAyE;AAE5D,QAAA,eAAe,GAAG;IACrB,YAAY,CAAC,MAAW;;YAC1B,OAAQ,MAAM,0CAAoB,CAAC,YAAY,CAAC,MAAM,CAAC,CAAA;QAC3D,CAAC;KAAA;CACJ,CAAA"}

@@ -13,6 +13,7 @@ const posts_router_1 = require("./posts/router/posts-router");
 const auth_router_1 = require("./auth/auth-router/auth-router");
 const comments_router_1 = require("./comments/router/comments-router");
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
+const security_router_1 = require("./security/router/security-router");
 exports.app = (0, express_1.default)();
 const jsonBodyMiddleware = express_1.default.json();
 exports.app.use(jsonBodyMiddleware);
@@ -24,4 +25,5 @@ exports.app.use('/comments', comments_router_1.commentsRouter);
 exports.app.use('/auth', auth_router_1.authRouter);
 exports.app.use('/testing', test_router_1.testRouter);
 exports.app.use('/blogs', blogs_posts_bindings_router_1.blogsPostsBindRouter);
+exports.app.use('/security/devices', security_router_1.securityRouter);
 //# sourceMappingURL=app.js.map

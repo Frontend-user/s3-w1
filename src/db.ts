@@ -22,6 +22,7 @@ export const postsCollection = client.db('db').collection<PostEntityType | PostC
 export const usersCollection = client.db('db').collection<UserEmailEntityType>('users')
 export const commentsCollection = client.db('db').collection('comments')
 export const tokensCollection = client.db('db').collection('tokens')
+export const devicesCollection = client.db('db').collection('devices')
 
 export const  runDb = async () =>{
     try {

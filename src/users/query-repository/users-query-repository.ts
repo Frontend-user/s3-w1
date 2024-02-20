@@ -1,12 +1,9 @@
-import {blogsSorting} from "../../blogs/blogs-query/utils/blogs-sorting";
 import {blogsPaginate} from "../../blogs/blogs-query/utils/blogs-paginate";
-import {commentsCollection, usersCollection} from "../../db";
-import {UserEmailEntityType, UserEntityType, UserHashType, UserViewType} from "../types/user-types";
+import {usersCollection} from "../../db";
+import {UserEmailEntityType, UserViewType} from "../types/user-types";
 import {ObjectId, SortDirection} from "mongodb";
-import {QueryFindType, TypeQuerySortBlog} from "../../blogs/blogs-query/types/query-types";
+import { TypeQuerySortBlog} from "../../blogs/blogs-query/types/query-types";
 import {Pagination} from "../../common/types/pagination";
-import {usersRepositories} from "../repository/users-repository";
-import {nodemailerService} from "../../application/nodemailer-service";
 
 export const usersQueryRepository = {
     async getUsers(searchLoginTerm?: string, searchEmailTerm?: string, sortBy?: string, sortDirection?: string, pageNumber?: number, pageSize?: number): Promise<Pagination<UserViewType[]>> {

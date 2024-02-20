@@ -21,6 +21,7 @@ exports.testRouter.delete('/all-data', (req, res) => __awaiter(void 0, void 0, v
         yield db_1.client.db('db').collection('users').deleteMany({});
         yield db_1.client.db('db').collection('comments').deleteMany({});
         yield db_1.client.db('db').collection('tokens').deleteMany({});
+        yield db_1.client.db('db').collection('devices').deleteMany({});
         res.sendStatus(204);
     }
     catch (error) {

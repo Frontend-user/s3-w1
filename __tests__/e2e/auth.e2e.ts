@@ -1,6 +1,7 @@
-import request from "supertest";
+const request = require('supertest')
 import {app} from "../../src/app";
 import {Routes} from "../../src/common/constants/routes";
+const Cookies = require('js-cookie');
 
 describe('/Users', () => {
     const token = 'Basic YWRtaW46cXdlcnR5'
@@ -42,6 +43,21 @@ describe('/Users', () => {
                 "loginOrEmail": "emailemail@mail.ru",
                 "password": "password",
             })
+    })
+    it('[AUth refresh]', async () => {
+
+        jwt = await request(app)
+            .post('/auth/refresh-token')
+            // .set('userid', responseUserData.body.id)
+            // Cookies.set('refreshToken', '20001')
+            .set('Cookie', ['refreshToken=2001'])
+            .send({
+                "accessToken": "string"
+            // }
+            //     "loginOrEmail": "emailemail@mail.ru",
+            //     "password": "password",
+            })
+        expect('2').toEqual('2111')
     })
     // const JWT_TOKEN ='Bearer ' + jwt.body.accessToken
 

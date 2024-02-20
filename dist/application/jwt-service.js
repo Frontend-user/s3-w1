@@ -20,18 +20,31 @@ exports.jwtService = {
             return yield jwt.sign({ userId: userId }, process.env.JWT_SECRET, { expiresIn: '10s' });
         });
     },
-    createRefreshToken(userId) {
+    createRefreshToken(userId, newDeviceId) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield jwt.sign({ userId: userId }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '20s' });
+            return yield jwt.sign({
+                userId: userId,
+                deviceId: newDeviceId
+            }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '20s' });
         });
     },
     checkRefreshToken(token) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const result = yield jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
-                console.log(result, '________________');
                 let isFindUser = yield users_query_repository_1.usersQueryRepository.getUserById(new mongodb_1.ObjectId(result.userId));
                 return isFindUser ? result.userId : false;
+            }
+            catch (error) {
+                return;
+            }
+        });
+    },
+    getRefreshToken(token) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const result = yield jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+                return result ? result : false;
             }
             catch (error) {
                 return;
@@ -42,7 +55,6 @@ exports.jwtService = {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const result = yield jwt.verify(token, process.env.JWT_SECRET);
-                console.log(result, '________________');
                 let isFindUser = yield users_query_repository_1.usersQueryRepository.getUserById(new mongodb_1.ObjectId(result.userId));
                 return isFindUser ? result.userId : false;
             }

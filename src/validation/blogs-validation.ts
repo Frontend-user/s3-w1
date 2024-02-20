@@ -35,7 +35,6 @@ export const inputValidationMiddleware = (req: Request, res: Response, next: Nex
     const errors = validationResult(req).array({onlyFirstError:true})
     if (errors.length) {
         let errorsForClient:ErrorType[] = []
-        console.log(errors,'errors')
         for (const error of errors) {
                 errorsForClient.push(error.msg)
             if(error.msg.field==='refreshToken'){

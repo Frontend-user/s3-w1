@@ -13,6 +13,7 @@ testRouter.delete('/all-data', async (req: Request, res: Response) => {
         await client.db('db').collection('users').deleteMany({});
         await client.db('db').collection('comments').deleteMany({});
         await client.db('db').collection('tokens').deleteMany({});
+        await client.db('db').collection('devices').deleteMany({});
 
         res.sendStatus(204)
 

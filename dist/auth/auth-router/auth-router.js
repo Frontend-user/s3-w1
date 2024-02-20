@@ -35,6 +35,10 @@ const users_query_repository_1 = require("../../users/query-repository/users-que
 const mongodb_1 = require("mongodb");
 const auth_repository_1 = require("../auth-repository/auth-repository");
 const tokenValidator_1 = require("../validation/tokenValidator");
+const security_service_1 = require("../../security/domain/security-service");
+const uuid_1 = require("uuid");
+const query_security_repository_1 = require("../../security/query-repository/query-security-repository");
+const security_repository_1 = require("../../security/repositories/security-repository");
 exports.authRouter = (0, express_1.Router)({});
 exports.authRouter.get('/me', tokenValidator_1.authorizationTokenMiddleware, tokenValidator_1.tokenValidationMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     let token = req.headers.authorization.split(' ')[1];
@@ -66,23 +70,42 @@ exports.authRouter.post('/logout', tokenValidator_1.refreshTokenValidator, token
         res.sendStatus(http_statuses_1.HTTP_STATUSES.NOT_AUTH_401);
         return;
     }
+    const oldTokenData = yield jwt_service_1.jwtService.getRefreshToken(getRefreshToken);
+    const isError = yield query_security_repository_1.querySecurityRepositories.getDeviceByDateAndDeviceId(oldTokenData);
+    if (!isError) {
+        res.sendStatus(401);
+        return;
+    }
+    const tokenData = yield jwt_service_1.jwtService.getRefreshToken(req.cookies.refreshToken);
+    const deviceId = tokenData ? tokenData.deviceId : '0';
+    yield security_repository_1.securityRepositories.deleteDeviceById(deviceId);
     yield auth_repository_1.authRepositories.addUnValidRefreshToken(getRefreshToken);
     res.sendStatus(204);
 }));
 exports.authRouter.post('/refresh-token', tokenValidator_1.refreshTokenValidator, tokenValidator_1.isUnValidTokenMiddleware, tokenValidator_1.tokenValidationMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const getRefreshToken = req.cookies.refreshToken;
     const userId = yield jwt_service_1.jwtService.checkRefreshToken(getRefreshToken);
+    console.log(userId, 'USERID ');
     if (!userId) {
         res.sendStatus(http_statuses_1.HTTP_STATUSES.NOT_AUTH_401);
         return;
     }
-    const refreshToken = yield jwt_service_1.jwtService.createRefreshToken(userId);
+    const oldTokenData = yield jwt_service_1.jwtService.getRefreshToken(getRefreshToken);
+    const isError = yield query_security_repository_1.querySecurityRepositories.getDeviceByDateAndDeviceId(oldTokenData);
+    if (!isError) {
+        res.sendStatus(401);
+        return;
+    }
+    const tokenData = yield jwt_service_1.jwtService.getRefreshToken(req.cookies.refreshToken);
+    const refreshToken = yield jwt_service_1.jwtService.createRefreshToken(userId, tokenData.deviceId);
+    yield security_repository_1.securityRepositories.updateDevice(refreshToken);
     const token = yield jwt_service_1.jwtService.createJWT(userId);
     yield auth_repository_1.authRepositories.addUnValidRefreshToken(getRefreshToken);
     res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true });
     res.send({ accessToken: token });
 }));
-exports.authRouter.post('/login', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.authRouter.post('/login', tokenValidator_1.loginRestrictionValidator, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
         const authData = {
             loginOrEmail: req.body.loginOrEmail,
@@ -93,10 +116,20 @@ exports.authRouter.post('/login', (req, res) => __awaiter(void 0, void 0, void 0
             res.sendStatus(http_statuses_1.HTTP_STATUSES.NOT_AUTH_401);
             return;
         }
+        const createdDeviceId = (0, uuid_1.v4)();
         const user = yield auth_repository_1.authRepositories.getUserIdByAutData(authData);
         if (user) {
             const token = yield jwt_service_1.jwtService.createJWT(user._id);
-            const refreshToken = yield jwt_service_1.jwtService.createRefreshToken(user._id);
+            const refreshToken = yield jwt_service_1.jwtService.createRefreshToken(user._id, createdDeviceId);
+            const dataToken = yield jwt_service_1.jwtService.getRefreshToken(refreshToken);
+            yield security_service_1.securityService.createDevice({
+                userId: String(user._id),
+                ip: req.ip,
+                title: (_a = req.headers['user-agent']) !== null && _a !== void 0 ? _a : 'string',
+                lastActiveDate: new Date(dataToken.iat).toISOString(),
+                deviceId: createdDeviceId
+            });
+            console.log(req.ip, 'req.ip');
             res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true });
             res.send({ accessToken: token });
         }
@@ -105,7 +138,7 @@ exports.authRouter.post('/login', (req, res) => __awaiter(void 0, void 0, void 0
         res.sendStatus(http_statuses_1.HTTP_STATUSES.SERVER_ERROR_500);
     }
 }));
-exports.authRouter.post('/registration', ...exports.registrationValidators, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.authRouter.post('/registration', tokenValidator_1.authRestrictionValidator, ...exports.registrationValidators, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userInputData = {
             login: req.body.login,
@@ -123,7 +156,7 @@ exports.authRouter.post('/registration', ...exports.registrationValidators, (req
         res.sendStatus(http_statuses_1.HTTP_STATUSES.SERVER_ERROR_500);
     }
 }));
-exports.authRouter.post('/registration-confirmation', users_validation_1.checkCodeConfirmation, users_validation_1.checkCodeExist, blogs_validation_1.inputValidationMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.authRouter.post('/registration-confirmation', tokenValidator_1.emailConfirmRestrictionValidator, users_validation_1.checkCodeConfirmation, users_validation_1.checkCodeExist, blogs_validation_1.inputValidationMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const response = yield auth_service_1.authService.registrationConfirm(req.body.code);
         if (!response) {
@@ -136,7 +169,7 @@ exports.authRouter.post('/registration-confirmation', users_validation_1.checkCo
         res.sendStatus(http_statuses_1.HTTP_STATUSES.SERVER_ERROR_500);
     }
 }));
-exports.authRouter.post('/registration-email-resending', users_validation_1.checkEmailConfirmation, users_validation_1.userEmailRecendingExistValidation, blogs_validation_1.inputValidationMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.authRouter.post('/registration-email-resending', tokenValidator_1.emailResendingRestrictionValidator, users_validation_1.checkEmailConfirmation, users_validation_1.userEmailRecendingExistValidation, blogs_validation_1.inputValidationMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const response = yield auth_service_1.authService.registrationEmailResending(req.body.email);
         if (!response) {
